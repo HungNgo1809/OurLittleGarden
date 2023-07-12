@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class SetYPositionToPlace : MonoBehaviour
 {
+
+    public ParticleSystem particle;
+    public float minPlayDelay = 0f; 
+    public float maxPlayDelay = 300f; 
+
+    private float nextPlayTime = 0f;
+
     public int objAddHeight;
 
     public float upVector = 0.3f;
@@ -11,6 +18,7 @@ public class SetYPositionToPlace : MonoBehaviour
     public void Start()
     {
         Invoke("Handle", 2.0f);
+        CalculateNextPlayTime();
     }
     public void Handle()
     {
@@ -22,5 +30,30 @@ public class SetYPositionToPlace : MonoBehaviour
         {
             transform.position = new Vector3(transform.position.x, hit.point.y + objAddHeight, transform.position.z);
         }
+    }
+
+
+    void Update()
+    {
+        if (Time.time >= nextPlayTime)
+        {
+ 
+            PlayParticleSystem();
+            CalculateNextPlayTime();
+        }
+    }
+
+    private void PlayParticleSystem()
+    {
+        if (particle != null)
+        {
+            particle.Play();
+        }
+    }
+
+    private void CalculateNextPlayTime()
+    {
+        float delay = Random.Range(minPlayDelay, maxPlayDelay);
+        nextPlayTime = Time.time + delay;
     }
 }

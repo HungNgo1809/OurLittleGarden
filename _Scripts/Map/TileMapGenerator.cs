@@ -3,6 +3,9 @@ using UnityEngine.Tilemaps;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
+using static Lands;
+using System.Runtime.CompilerServices;
+using UnityEngine.Playables;
 
 public class TileMapGenerator : MonoBehaviour
 {
@@ -19,21 +22,67 @@ public class TileMapGenerator : MonoBehaviour
 
     public float[] cumulativeFrequencies;
     float totalF;
-    
+
+    public bool isDrawMap;
+    public bool isSpawnObject;
+    public bool isReCreate;
+    public bool isSaveTer;
+
+    //public GameObject Player;
     void Start()
     {
-        //Nếu đã đăng ký thì load dữ liệu từ data
-            //do something
+        StartCoroutine(WaitDataForStart());
+    }
+    IEnumerator WaitDataForStart()
+    {
+        yield return new WaitUntil(() => dataManager.isLoadedData);
 
-        //Nếu tài khoản mới đăng ký
-        cumulativeFrequencies = new float[TerrianType.Length];
-        CallSpawn();
-        if (ground.Length > 0)
+        if (dataManager.isOldbie == 1)
         {
-            CallMapDraw();
+            //Debug.Log("create");
+            StartCoroutine(ReCreateMap());
+            Debug.Log("recreate");
+        }
+        else
+        {
+            //Nếu tài khoản mới đăng ký
+            dataManager.SaveDataPlayfab("friendRequest", "[]");
+            dataManager.SaveDataPlayfab("friendRequestSend", "[]");
+
+            cumulativeFrequencies = new float[TerrianType.Length];
+            Debug.Log("newmap");
+            StartCoroutine(StartCallSpawn());
+            if (ground.Length > 0)
+            {
+                Debug.Log("draw");
+                StartCoroutine(StartCallMapDraw());
+            }
         }
     }
+    IEnumerator StartCallSpawn()
+    {
+        yield return new WaitForSeconds(0.001f);
+        CallSpawn();
+    }
+    IEnumerator StartCallMapDraw()
+    {
+        yield return new WaitForSeconds(0.001f);
+        CallMapDraw();
+    }
+    private void Update()
+    {
+        if(isSaveTer)
+        {
+            return;
+        }    
 
+        if(isDrawMap && isSpawnObject)
+        {
+            //Player.SetActive(true);
+            dataManager.SaveFarmTerData();
+            isSaveTer = true;
+        }    
+    }
     public void CallMapDraw()
     {
         Vector3Int position;
@@ -106,6 +155,8 @@ public class TileMapGenerator : MonoBehaviour
                 break;
             }
         }
+
+        isDrawMap = true;
     }
     public void DrawMap(GameObject obj, Vector3 position, string type, string itemId)
     {
@@ -129,10 +180,12 @@ public class TileMapGenerator : MonoBehaviour
             newObj.transform.rotation = Quaternion.Euler(newObj.transform.rotation.x, 270, newObj.transform.rotation.z);
         }
 
+        //Add to object list
+        ListObjectManager.Instance.terObject.Add(newObj);
         //Add to dataManager
         if(itemId != null)
         {
-            dataManager.AddTerrainToData(newObj, type, itemId);
+            dataManager.AddTerrainToData(newObj, type, itemId, "terrian");
         }    
     }
     
@@ -143,6 +196,8 @@ public class TileMapGenerator : MonoBehaviour
             SpawnObject(ObjectType[i].obj, ObjectType[i].numberObjectWantSpawn, ObjectType[i].UpperLimitX, ObjectType[i].LowerLimitX, ObjectType[i].UpperlimitZ, ObjectType[i].LowerLimitZ, ObjectType[i].type, ObjectType[i].itemID);
             //Debug.Log(ObjectType[i].type);
         }
+
+        isSpawnObject = true;
         //yield return null;
     }
     public void SpawnObject(GameObject obj, int number, int UpperX, int LowerX, int UpperZ, int LowerZ, string type, string itemId)
@@ -181,10 +236,13 @@ public class TileMapGenerator : MonoBehaviour
                 newObj.transform.rotation = Quaternion.Euler(newObj.transform.rotation.x, 270, newObj.transform.rotation.z);
             }
 
+
+            //Add to object list
+            ListObjectManager.Instance.terObject.Add(newObj);
             //Add to data manager
-            if((itemId != null) && (type != "LargePlane"))
+            if ((itemId != null) && (type != "LargePlane"))
             {
-                dataManager.AddTerrainToData(newObj, type, itemId);
+                dataManager.AddTerrainToData(newObj, type, itemId, "object");
             }    
             //Debug.Log(itemId);
         }
@@ -226,7 +284,105 @@ public class TileMapGenerator : MonoBehaviour
 
         return false;
     }
+    
+    public void StartReCreateMap()
+    {
+        StartCoroutine(ReCreateMap()); ;
+    }
+    IEnumerator ReCreateMap()
+    {
+        yield return new WaitForSeconds(0.01f);
 
+        foreach (DataManager.TerrainData ter in dataManager.terData)
+        {
+            if (ter.objType == "terrian")
+            {
+                if (TerrianType.Where(p => p.itemID == ter.itemID).FirstOrDefault() != null)
+                {
+                    GameObject objSpawn = TerrianType.Where(p => p.itemID == ter.itemID).FirstOrDefault().ter;
+                   
+                  
+                    Vector3 tmp = new Vector3();
+                    tmp.x = ter.PosX;
+                    tmp.y = ter.PosY;
+                    tmp.z = ter.PosZ;
+
+                    //Vector3 spawnPosition = ground[0].GetCellCenterWorld(tmp);
+
+                    GameObject obj = Instantiate(objSpawn, tmp, Quaternion.identity);
+
+                    //Add to object list
+                    ListObjectManager.Instance.terObject.Add(obj);
+
+                    obj.transform.rotation = Quaternion.Euler(obj.transform.rotation.x, ter.Rotation, obj.transform.rotation.z);
+
+                    obj.transform.name = ter.objectID;
+
+                    obj.transform.SetParent(ground[0].transform);
+
+
+                    //Debug.Log("1");
+                    Lands lands = obj.GetComponent<Lands>();
+                    if (lands != null)
+                    {
+                        ListObjectManager.Instance.TerObject.Add(obj);
+
+                        //Debug.Log("2");
+
+                        if (ter.LandsMode == 0)
+                        {
+
+                            //Debug.Log("3");
+                            lands.landStatus = LandStatus.FarmLand;
+                    
+                        }
+                        if (ter.LandsMode == 1)
+                        {
+
+                            //Debug.Log("4");
+                            lands.isWater = true;
+                            lands.isLoad = true;
+                            lands.landStatus = LandStatus.Watered;
+                            lands.timeWatered = GameTimestamp.CalculateApproximateTimestamp(TimeManager.Instance.timestamp ,ter.wateredTime);
+                            lands.ReloadWateredLand();
+                        }
+           
+                    }
+                 
+                }
+            }
+            if (ter.objType == "object")
+            {
+                if(ObjectType.Where(p => p.itemID == ter.itemID).FirstOrDefault() != null)
+                {
+                    GameObject objSpawn = ObjectType.Where(p => p.itemID == ter.itemID).FirstOrDefault().obj;
+
+                    Vector3 tmp = new Vector3();
+                    tmp.x = ter.PosX;
+                    tmp.y = ter.PosY;
+                    tmp.z = ter.PosZ;
+
+                    GameObject obj = Instantiate(objSpawn, tmp, Quaternion.identity);
+
+                    //Add to object list
+                    ListObjectManager.Instance.terObject.Add(obj);
+
+                    obj.transform.rotation = Quaternion.Euler(obj.transform.rotation.x, ter.Rotation, obj.transform.rotation.z);
+
+                    obj.transform.name = ter.objectID;
+
+                    obj.transform.SetParent(tilemap.transform);
+                }
+            }
+        }
+        isReCreate = true;
+                    //Player.SetActive(true);
+    }
+
+    public void ClockUpdate(GameTimestamp timestamp)
+    {
+        throw new System.NotImplementedException();
+    }  
     [System.Serializable]
     public class objectToSpawn
     {

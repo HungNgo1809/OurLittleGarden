@@ -1,5 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
+
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -11,31 +10,70 @@ public class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public Transform lastParent;
 
-    public DataManager dataManager;
+    //public DataManager dataManager;
+
+    public bool isSellingMode = false;
     public void OnBeginDrag(PointerEventData eventData)
     {
-        lastParent = parentAfterDrag = transform.parent;
+       
+        
+        if(!isSellingMode)
+        {
+            lastParent = parentAfterDrag = transform.parent;
+            transform.SetParent(transform.root);
+
+            transform.SetAsLastSibling();
+            image.raycastTarget = false;
+        }
+        /*
+         *  lastParent = parentAfterDrag = transform.parent;
         transform.SetParent(transform.root);
 
         transform.SetAsLastSibling();
         image.raycastTarget = false;
+        */
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        transform.position = Input.mousePosition;
+        //  transform.position = Input.mousePosition;
+        if (!isSellingMode)
+        {
+            transform.position = Input.mousePosition;
+        }
+
     }
     public void OnEndDrag(PointerEventData eventData)
     {
-        if(lastParent != parentAfterDrag)
-        {
-            Transform item = Instantiate(transform);
-            //item.GetComponent<RectTransform>().sizeDelta = new Vector2(50, 50);
-            item.name = transform.name;
-            item.SetParent(parentAfterDrag);
-        }
 
-        transform.SetParent(lastParent);
+        if (!isSellingMode)
+        {
+            if (lastParent != parentAfterDrag)
+            {
+                ChangeParent(transform, parentAfterDrag);
+            }
+            else
+            {
+                ChangeParent(transform, lastParent);
+            }
+            image.raycastTarget = true;
+        }
+        /*
+        if (lastParent != parentAfterDrag)
+        {
+            ChangeParent(transform, parentAfterDrag);
+        }
+        else
+        {
+            ChangeParent(transform, lastParent);
+        }
         image.raycastTarget = true;
+        */
+    }
+
+    public void ChangeParent(Transform child, Transform newParrent)
+    {
+        //Debug.Log(".");
+        child.SetParent(newParrent);
     }
 }

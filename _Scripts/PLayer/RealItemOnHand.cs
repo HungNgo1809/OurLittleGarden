@@ -8,6 +8,7 @@ public class RealItemOnHand : MonoBehaviour
 
     GameObject curObjTool;
 
+    /*
     public void ChangeTool()
     {
         for (int i = 0; i < itemOnHand.Length; i++)
@@ -20,5 +21,5 @@ public class RealItemOnHand : MonoBehaviour
                 curObjTool = itemOnHand[i];
             }
         }
-    }    
+    }*/    
 }

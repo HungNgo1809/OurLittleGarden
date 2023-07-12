@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 
 [CreateAssetMenu(fileName = "NewData", menuName = "CraftManager")]
 public class CraftManager : ScriptableObject
@@ -44,12 +45,34 @@ public class CraftManager : ScriptableObject
 
     public void OnClickCraft(Tool tool)
     {
+        if(DisplayInventory.Instance.SearchFirstEmptyUiSlot() == null)
+        {
+            // thông báo túi đồ full
+        }else    
         if(craftable)
         {
             DeleteMaterialInInventory(tool);
-            dataManager.AddItemToInventoryData(tool.toolID, "tool", tool.speType);
+
+            dataManager.AddItemToInventoryData(tool.toolID, tool.type, tool.speType, tool.durability, int.Parse(DisplayInventory.Instance.SearchFirstEmptyUiSlot().name), tool.quickSellMoney);
+
+            DisplayInventory.Instance.ClearAll();
+            DisplayInventory.Instance.UpdateUI();
         }    
     }
+    public void OnClickBuildCraft(Tool tool)
+    {
+        DeleteMaterialInInventory(tool);
+
+        //Build
+        if(tool.toolID == "campFire")
+        {
+            Builder.Instance.StartBuild(tool.toolID, new Vector3(0, 1.5f, 0), 0);
+        }
+        else
+        {
+            Builder.Instance.StartBuild(tool.toolID, new Vector3(0, 1, 0), 0);
+        }    
+    }    
     
     public void DeleteMaterialInInventory(Tool tool)
     {
@@ -57,7 +80,12 @@ public class CraftManager : ScriptableObject
         {
             for(int i = 0; i < mat.number; i++)
             {
+                //Debug.Log(mat.prefabItemId);
                 dataManager.RemoveItemInDataByPrefabId(mat.prefabItemId);
+
+
+                DisplayInventory.Instance.ClearAll();
+                DisplayInventory.Instance.UpdateUI();
             }
         }
     }
@@ -74,8 +102,13 @@ public class CraftManager : ScriptableObject
     public class Tool
     {
         public string toolID;
+        public Sprite icon;
+
+        public string type;
         public string speType;
+
         public float durability;
+        public int quickSellMoney;
 
         public List<Material> materials;
     }

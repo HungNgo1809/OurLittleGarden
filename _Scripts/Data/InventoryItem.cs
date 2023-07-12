@@ -29,17 +29,24 @@ public class InventoryItem : MonoBehaviour
         return items.Where(p => p.prefabItemID == id).FirstOrDefault();
     }
 
+    public ItemData SearchItemByObjectUIName(string name)
+    {
+        return items.Where(p => p.objUI.name == name).FirstOrDefault();
+    }
+
+
     [System.Serializable]
     public class ItemData
     {
         public string prefabItemID;
         
-        public GameObject realObj;
+        //public GameObject realObj;
         public GameObject objUI;
 
         public string type;
         public string speType;
 
         public float durability;
+        public int money;
     }
 }
